@@ -9,8 +9,8 @@ namespace Chip8.NET
 {
     public class Chip8Interpreter
     {
-        // addresses 0x200 - 0xFFF
-        private byte[] _ram = new byte[0x1000 - 0x200];
+        // addresses 0x200 - 0xFFF for program
+        private byte[] _ram = new byte[0x1000];
 
         // registers V0-VF, I
         private byte[] _v = new byte[0x10];
@@ -52,7 +52,7 @@ namespace Chip8.NET
         {
             Reset();
             byte[] data = File.ReadAllBytes(file);
-            Array.Copy(data, _ram, _ram.Length);
+            Array.Copy(data, 0, _ram, 0x200, _ram.Length);
         }
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace Chip8.NET
         }
 
         /// <summary>
-        /// AAdds Vx = Vx + Vy, VF = carry.
+        /// Adds Vx = Vx + Vy, VF = carry.
         /// </summary>
         /// <param name="x">Register V# to add to</param>
         /// <param name="y">Register V#</param>
