@@ -27,6 +27,8 @@ namespace Chip8.NET
         {
             InitializeComponent();
             _chip8 = new Chip8Interpreter();
+            this.DataContext = _chip8;
+            screen.ItemsSource = _chip8.LCD;
         }
 
         private void buttonLoad_Click(object sender, RoutedEventArgs e)

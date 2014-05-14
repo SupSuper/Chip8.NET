@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,20 +10,48 @@ namespace Chip8.NET
 {
     public class Chip8Interpreter
     {
-        // addresses 0x200 - 0xFFF for program
+        // hexadecimal characters
+        private byte[] _hex = { 0xF0, 0x90, 0x90, 0x90, 0xF0,
+                                0x20, 0x60, 0x20, 0x20, 0x70,
+                                0xF0, 0x10, 0xF0, 0x80, 0xF0,
+                                0xF0, 0x10, 0xF0, 0x10, 0xF0,
+                                0x90, 0x90, 0xF0, 0x10, 0x10,
+                                0xF0, 0x80, 0xF0, 0x10, 0xF0,
+                                0xF0, 0x80, 0xF0, 0x90, 0xF0,
+                                0xF0, 0x10, 0x20, 0x40, 0x40,
+                                0xF0, 0x90, 0xF0, 0x90, 0xF0,
+                                0xF0, 0x90, 0xF0, 0x10, 0xF0,
+                                0xF0, 0x90, 0xF0, 0x90, 0x90,
+                                0xE0, 0x90, 0xE0, 0x90, 0xE0,
+                                0xF0, 0x80, 0x80, 0x80, 0xF0,
+                                0xE0, 0x90, 0x90, 0x90, 0xE0,
+                                0xF0, 0x80, 0xF0, 0x80, 0xF0,
+                                0xF0, 0x80, 0xF0, 0x80, 0x80 };
+        private static short HEX_START = 0x000;
+        private static short HEX_SIZE = 5;
+
+        // 0x200 - 0xFFF for program
         private byte[] _ram = new byte[0x1000];
+        private static short PROGRAM_START = 0x200;
 
         // registers V0-VF, I
         private byte[] _v = new byte[0x10];
         private short _i;
 
         // internals
-        private short _pc;
-        private Stack<short> _sp = new Stack<short>();
-        private bool[,] _lcd = new bool[64, 32];
-        private bool[] _keys = new bool[0x10];
+        private short _pc; // program counter
+        private Stack<short> _sp = new Stack<short>(); // address stack
+        private static byte LCD_W = 64, LCD_H = 32;
+        private bool[] _lcd = new bool[LCD_W * LCD_H]; // screen pixels
+        private bool[] _keys = new bool[0x10]; // keys pressed
+        private byte _kp; // current key pressed
+        private byte _dt, _st; // delay and sound timer
+
         private bool _running;
         private Random _random;
+
+        // databinding properties
+        public bool[] LCD { get { return _lcd; } private set { _lcd = value; } }
 
         public Chip8Interpreter()
         {
@@ -35,6 +64,7 @@ namespace Chip8.NET
         private void Reset()
         {
             Array.Clear(_ram, 0, _ram.Length);
+            Array.Copy(_hex, _ram, _hex.Length);
             Array.Clear(_v, 0, _v.Length);
             _i = 0;
             _pc = 0x200;
@@ -52,7 +82,7 @@ namespace Chip8.NET
         {
             Reset();
             byte[] data = File.ReadAllBytes(file);
-            Array.Copy(data, 0, _ram, 0x200, _ram.Length);
+            Array.Copy(data, 0, _ram, PROGRAM_START, _ram.Length);
         }
 
         /// <summary>
@@ -156,15 +186,15 @@ namespace Chip8.NET
         {
             switch (op)
             {
-                case 0x07: break;
-                case 0x0A: break;
-                case 0x15: break;
-                case 0x18: break;
-                case 0x1E: break;
-                case 0x29: break;
-                case 0x33: break;
-                case 0x55: break;
-                case 0x65: break;
+                case 0x07: SetDelayTimer(x); break;
+                case 0x0A: GetKeyPressed(x); break;
+                case 0x15: SetDelayTimer(x); break;
+                case 0x18: SetSoundTimer(x); break;
+                case 0x1E: AddAddress(x); break;
+                case 0x29: HexSprite(x); break;
+                case 0x33: BCD(x);  break;
+                case 0x55: SaveRegisters(); break;
+                case 0x65: LoadRegisters(); break;
             }
         }
 
@@ -404,9 +434,29 @@ namespace Chip8.NET
             _v[x] = (byte)(rand & nn);
         }
 
+        /// <summary>
+        /// Draws a sprite on the screen at Vx,Vy coordinates.
+        /// </summary>
+        /// <param name="x">X position</param>
+        /// <param name="y">Y position</param>
+        /// <param name="n">Size of the sprite</param>
         private void DrawSprite(byte x, byte y, byte n)
         {
-            throw new NotImplementedException();
+            _v[0xF] = 0;
+            byte spriteX = _v[x], spriteY = _v[y];
+            for (byte i = 0; i < n; i++)
+            {
+                for (byte row = _ram[_i + i], p = 0; p < 8; p++, row >>= 1)
+                {
+                    bool pixel = (row & 1) == 1;
+                    int pos = spriteX + LCD_W * (spriteY + i);
+                    if (_lcd[pos])
+                        _v[0xF] = 1;
+                    if (pixel)
+                        _lcd[pos] = !_lcd[pos];
+                    row >>= 1;
+                }
+            }
         }
 
         /// <summary>
@@ -431,6 +481,90 @@ namespace Chip8.NET
             {
                 Next();
             }
+        }
+
+        /// <summary>
+        /// Stores the delay timer in Vx.
+        /// </summary>
+        /// <param name="x">Register V#</param>
+        private void GetDelayTimer(byte x)
+        {
+            _v[x] = _dt;
+        }
+
+        /// <summary>
+        /// Waits until a key is pressed and stores it in Vx.
+        /// </summary>
+        /// <param name="x">Register V#</param>
+        private void GetKeyPressed(byte x)
+        {
+            while (_kp == 0xFF) { }
+            _v[x] = _kp;
+            _kp = 0xFF;
+        }
+
+        /// <summary>
+        /// Changes the delay timer to Vx.
+        /// </summary>
+        /// <param name="x">Register V#</param>
+        private void SetDelayTimer(byte x)
+        {
+            _dt = _v[x];
+        }
+
+        /// <summary>
+        /// Changes the sound timer to Vx.
+        /// </summary>
+        /// <param name="x">Register V#</param>
+        private void SetSoundTimer(byte x)
+        {
+            _st = _v[x];
+        }
+
+        /// <summary>
+        /// Adds the address in Vx to I.
+        /// </summary>
+        /// <param name="x">Register V#</param>
+        private void AddAddress(byte x)
+        {
+            _i += _v[x];
+        }
+
+        /// <summary>
+        /// Gets the address for the hexadecimal sprite for number Vx.
+        /// </summary>
+        /// <param name="x">Register Vx</param>
+        private void HexSprite(byte x)
+        {            
+            _i = (short)(HEX_START + _v[x] * HEX_SIZE);
+        }
+
+        /// <summary>
+        /// Stores in I a Binary-Coded-Decimal of Vx.
+        /// </summary>
+        /// <param name="x">Register Vx</param>
+        private void BCD(byte x)
+        {
+            for (byte i = 2, value = _v[x]; value > 0; value /= 10, i--)
+            {
+                _ram[_i+i] = (byte)(value % 10);
+            }
+        }
+
+        /// <summary>
+        /// Saves all registers to the memory at I.
+        /// </summary>
+        private void SaveRegisters()
+        {
+            Array.Copy(_v, 0, _ram, _i, _v.Length);
+        }
+
+        /// <summary>
+        /// Loads all registers from the memory at I.
+        /// </summary>
+        private void LoadRegisters()
+        {
+            Array.Copy(_ram, _i, _v, 0, _v.Length);
         }
     }
 }
