@@ -38,19 +38,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Label Content="Memory:"/>
-            <ListView x:Name="listMemory" Grid.Row="1">
-                <ListView.View>
-                    <GridView>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-            <Label Content="Registers:" Grid.Column="1"/>
-            <ListView x:Name="listRegisters" Grid.Column="1" Grid.Row="1">
-                <ListView.View>
-                    <GridView/>
-                </ListView.View>
-            </ListView>
+            <Label Content="Debug:"/>
             <Grid Grid.Row="2" Grid.ColumnSpan="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -61,6 +49,7 @@
                 <Button x:Name="buttonRun" Content="Run" Click="buttonRun_Click" Grid.Column="1"/>
                 <Button x:Name="buttonStep" Content="Step" Click="buttonStep_Click" Grid.Column="2"/>
             </Grid>
+            <ListBox x:Name="listDebug" Grid.Row="1" Grid.ColumnSpan="2"/>
         </Grid>
         <UniformGrid Grid.Row="1" Rows="4" Columns="4" HorizontalAlignment="Center" Width="132">
             <Button x:Name="key1" Content="1"/>

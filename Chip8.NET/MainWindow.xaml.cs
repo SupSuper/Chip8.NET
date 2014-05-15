@@ -26,14 +26,15 @@ namespace Chip8.NET
         public MainWindow()
         {
             InitializeComponent();
-            _chip8 = new Chip8Interpreter();
+            _chip8 = new Chip8Interpreter(listDebug);
             this.DataContext = _chip8;
-            screen.ItemsSource = _chip8.LCD;
+            screen.ItemsSource = _chip8.Screen;
         }
 
         private void buttonLoad_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Filter = "Chip-8 Binaries|*.ch8;*.c8|All Files|*.*";
             bool? result = dlg.ShowDialog();
             if (result == true)
             {
@@ -43,7 +44,6 @@ namespace Chip8.NET
 
         private void buttonRun_Click(object sender, RoutedEventArgs e)
         {
-            _chip8.Run();
         }
 
         private void buttonStep_Click(object sender, RoutedEventArgs e)
