@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Controls;
 
 namespace Chip8.NET
@@ -43,16 +44,18 @@ namespace Chip8.NET
         // internals
         private short _pc; // program counter
         private Stack<short> _sp = new Stack<short>(); // address stack
+        private byte _dt, _st; // delay and sound timer
+
         private bool[] _keys = new bool[0x10]; // keys pressed
         private byte _kp; // current key pressed
-        private byte _dt, _st; // delay and sound timer
+        private static byte NO_KEY = 0xFF;
 
         private bool _running;
         private Random _random;
 
         // screen pixels
         private static byte SCR_W = 64, SCR_H = 32;
-        private ObservableCollection<bool> _screen = new ObservableCollection<bool>(Enumerable.Repeat(false, SCR_W * SCR_H));
+        private ObservableCollection<bool> _screen = new AsyncObservableCollection<bool>(Enumerable.Repeat(false, SCR_W * SCR_H));
 
         // databinding properties
         public event PropertyChangedEventHandler PropertyChanged;
@@ -68,7 +71,10 @@ namespace Chip8.NET
         private ListBox _debugger;
         private void Debug(string msg = "", [CallerMemberName] string caller = "")
         {
-            _debugger.Items.Add("["+caller+"] "+msg);
+            _debugger.Dispatcher.BeginInvoke((Action) (() =>
+            {
+                _debugger.Items.Add("["+caller+"] "+msg);
+            }));
         }
 
         public Chip8Interpreter(ListBox debugger)
@@ -87,8 +93,12 @@ namespace Chip8.NET
             Array.Clear(_v, 0, _v.Length);
             _i = 0;
             _pc = 0x200;
+            _sp.Clear();
             ClearScreen();
             Array.Clear(_keys, 0, _keys.Length);
+            _kp = NO_KEY;
+            _dt = 0;
+            _st = 0;
             _running = false;
             _random = new Random();
         }
@@ -111,6 +121,21 @@ namespace Chip8.NET
         public void Step()
         {
             Interpret();
+        }
+
+        public void Run()
+        {
+            _running = true;
+            while (_running)
+            {
+                Step();
+                Thread.Sleep(20);
+            }
+        }
+
+        public void Stop()
+        {
+            _running = false;
         }
         
         /// <summary>
@@ -202,7 +227,7 @@ namespace Chip8.NET
         {
             switch (op)
             {
-                case 0x07: SetDelayTimer(x); break;
+                case 0x07: GetDelayTimer(x); break;
                 case 0x0A: GetKeyPressed(x); break;
                 case 0x15: SetDelayTimer(x); break;
                 case 0x18: SetSoundTimer(x); break;
@@ -515,6 +540,17 @@ namespace Chip8.NET
             }
         }
 
+        public void InputPress(byte x)
+        {
+            _keys[x] = true;
+            _kp = x;
+        }
+
+        public void InputRelease(byte x)
+        {
+            _keys[x] = false;
+        }
+
         /// <summary>
         /// Skips the next instruction if Vx is pressed.
         /// </summary>
@@ -558,9 +594,9 @@ namespace Chip8.NET
         private void GetKeyPressed(byte x)
         {
             Debug("x = 0x" + x.ToString("x"));
-            //while (_kp == 0xFF) { }
+            while (_kp == NO_KEY);
             _v[x] = _kp;
-            _kp = 0xFF;
+            _kp = NO_KEY;
         }
 
         /// <summary>
@@ -570,7 +606,7 @@ namespace Chip8.NET
         private void SetDelayTimer(byte x)
         {
             Debug("x = 0x" + x.ToString("x"));
-            _dt = _v[x];
+            //_dt = _v[x];
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 ﻿<Window x:Class="Chip8.NET.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Chip8.NET" Height="427" Width="886" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+        Title="Chip8.NET" Height="427" Width="886" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" KeyDown="Input_KeyDown" KeyUp="Input_KeyUp">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="booltoVis"/>
     </Window.Resources>
@@ -46,28 +46,28 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Button x:Name="buttonLoad" Content="Load Program" Click="buttonLoad_Click"/>
-                <Button x:Name="buttonRun" Content="Run" Click="buttonRun_Click" Grid.Column="1"/>
-                <Button x:Name="buttonStep" Content="Step" Click="buttonStep_Click" Grid.Column="2"/>
+                <Button x:Name="buttonRun" Content="Run / Stop" Click="buttonRun_Click" Grid.Column="1" IsEnabled="False"/>
+                <Button x:Name="buttonStep" Content="Step" Click="buttonStep_Click" Grid.Column="2" IsEnabled="False"/>
             </Grid>
             <ListBox x:Name="listDebug" Grid.Row="1" Grid.ColumnSpan="2"/>
         </Grid>
         <UniformGrid Grid.Row="1" Rows="4" Columns="4" HorizontalAlignment="Center" Width="132">
-            <Button x:Name="key1" Content="1"/>
-            <Button x:Name="key2" Content="2"/>
-            <Button x:Name="key3" Content="3"/>
-            <Button x:Name="keyC" Content="C"/>
-            <Button x:Name="key4" Content="4"/>
-            <Button x:Name="key5" Content="5"/>
-            <Button x:Name="key6" Content="6"/>
-            <Button x:Name="keyD" Content="D"/>
-            <Button x:Name="key7" Content="7"/>
-            <Button x:Name="key8" Content="8"/>
-            <Button x:Name="key9" Content="9"/>
-            <Button x:Name="keyE" Content="E"/>
-            <Button x:Name="keyA" Content="A"/>
-            <Button x:Name="key0" Content="0"/>
-            <Button x:Name="keyB" Content="B"/>
-            <Button x:Name="keyF" Content="F"/>
+            <Button x:Name="key1" Content="1" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key2" Content="2" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key3" Content="3" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="keyC" Content="C" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key4" Content="4" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key5" Content="5" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key6" Content="6" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="keyD" Content="D" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key7" Content="7" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key8" Content="8" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key9" Content="9" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="keyE" Content="E" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="keyA" Content="A" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="key0" Content="0" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="keyB" Content="B" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
+            <Button x:Name="keyF" Content="F" PreviewMouseDown="Input_MouseDown" PreviewMouseUp="Input_MouseUp"/>
         </UniformGrid>
 
     </Grid>
