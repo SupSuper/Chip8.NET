@@ -9,11 +9,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using WinForms = System.Windows.Forms;
+using WinDraw = System.Drawing;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace Chip8.NET
 {
@@ -22,70 +25,130 @@ namespace Chip8.NET
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Chip8Interpreter _chip8;
-        private BackgroundWorker _worker;
-        private Button[] _inputButtons;
-        private Key[] _inputKeys;
+        private Chip8Interpreter chip8;
+        private BackgroundWorker worker;
+        private DispatcherTimer delay, sound;
+        private Button[] inputButtons;
+        private Key[] inputKeys;
 
         public MainWindow()
         {
             InitializeComponent();
-            _chip8 = new Chip8Interpreter(listDebug);
-            this.DataContext = _chip8;
-            screen.ItemsSource = _chip8.Screen;
-            _worker = new BackgroundWorker();
-            _worker.DoWork += worker_RunGame;
+            chip8 = new Chip8Interpreter(listDebug);
+            this.DataContext = chip8;
+            screen.ItemsSource = chip8.Screen;
+            worker = new BackgroundWorker();
+            worker.DoWork += worker_RunGame;
+            delay = new DispatcherTimer();
+            delay.Interval = new TimeSpan(0, 0, 0, 0, 16);
+            delay.Tick += delay_Tick;
+            sound = new DispatcherTimer();
+            sound.Interval = new TimeSpan(0, 0, 0, 0, 16);
+            sound.Tick += sound_Tick;
 
-            _inputButtons = new Button[] { key0, key1, key2, key3, key4, key5, key6, key7, key8, key9, keyA, keyB, keyC, keyD, keyE, keyF };
-            _inputKeys = new Key[] { Key.X, Key.D1, Key.D2, Key.D3, Key.Q, Key.W, Key.E, Key.A, Key.S, Key.D, Key.Z, Key.C, Key.D4, Key.R, Key.F, Key.V };
+            inputButtons = new Button[] { key0, key1, key2, key3, key4, key5, key6, key7, key8, key9, keyA, keyB, keyC, keyD, keyE, keyF };
+            inputKeys = new Key[] { Key.X, Key.D1, Key.D2, Key.D3, Key.Q, Key.W, Key.E, Key.A, Key.S, Key.D, Key.Z, Key.C, Key.D4, Key.R, Key.F, Key.V };
         }
 
-        void worker_RunGame(object sender, DoWorkEventArgs e)
+        private void delay_Tick(object sender, EventArgs e)
         {
-            _chip8.Run();
+            chip8.DelayTick();
+        }
+
+        private void sound_Tick(object sender, EventArgs e)
+        {
+            chip8.SoundTick();
+        }
+
+        private void worker_RunGame(object sender, DoWorkEventArgs e)
+        {
+            chip8.Run();
         }
 
         private void buttonLoad_Click(object sender, RoutedEventArgs e)
         {
-            if (_worker.IsBusy)
-            {
-                _chip8.Stop();
-            }
+            buttonPause_Click(sender, e);
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.Filter = "Chip-8 Binaries|*.ch8;*.c8|All Files|*.*";
             bool? result = dlg.ShowDialog();
             if (result == true)
             {
-                _chip8.LoadProgram(dlg.FileName);
+                chip8.LoadProgram(dlg.FileName);
+                Title = System.IO.Path.GetFileName(dlg.FileName) + " - Chip8.NET";
                 buttonRun.IsEnabled = true;
+                buttonPause.IsEnabled = false;
                 buttonStep.IsEnabled = true;
             }
         }
 
         private void buttonRun_Click(object sender, RoutedEventArgs e)
         {
-            if (_worker.IsBusy)
+            if (!worker.IsBusy)
             {
-                _chip8.Stop();
+                worker.RunWorkerAsync();
+                delay.Start();
+                sound.Start();
+                buttonRun.IsEnabled = false;
+                buttonPause.IsEnabled = true;
             }
-            else
+        }
+
+        private void buttonPause_Click(object sender, RoutedEventArgs e)
+        {
+            if (worker.IsBusy)
             {
-                _worker.RunWorkerAsync();
+                chip8.Stop();
+                delay.Stop();
+                sound.Stop();
+                buttonRun.IsEnabled = true;
+                buttonPause.IsEnabled = false;
             }
         }
 
         private void buttonStep_Click(object sender, RoutedEventArgs e)
         {
-            _chip8.Step();
+            chip8.Step();
+        }
+
+        private Color Win32ToWPF(WinDraw.Color color)
+        {
+            return Color.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        private WinDraw.Color WPFToWin32(Color color)
+        {
+            return WinDraw.Color.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        private void buttonBackColor_Click(object sender, RoutedEventArgs e)
+        {
+            SolidColorBrush brush = Resources["screenColor"] as SolidColorBrush;
+            WinForms.ColorDialog dlg = new WinForms.ColorDialog();
+            dlg.Color = WPFToWin32(brush.Color);
+            if (dlg.ShowDialog() == WinForms.DialogResult.OK)
+            {
+                Resources["screenColor"] = new SolidColorBrush(Win32ToWPF(dlg.Color));
+            }
+        }
+
+        private void buttonForeColor_Click(object sender, RoutedEventArgs e)
+        {
+            SolidColorBrush brush = Resources["pixelColor"] as SolidColorBrush;
+            WinForms.ColorDialog dlg = new WinForms.ColorDialog();
+            dlg.Color = WPFToWin32(brush.Color);
+            if (dlg.ShowDialog() == WinForms.DialogResult.OK)
+            {
+                Resources["pixelColor"] = new SolidColorBrush(Win32ToWPF(dlg.Color));
+            }
         }
 
         private void Input_KeyDown(object sender, KeyEventArgs e)
         {
-            for (byte i = 0; i < _inputKeys.Length; i++)
+            for (byte i = 0; i < inputKeys.Length; i++)
             {
-                if (_inputKeys[i] == e.Key)
+                if (inputKeys[i] == e.Key)
                 {
-                    _chip8.InputPress(i);
+                    chip8.InputPress(i);
                     break;
                 }
             }
@@ -93,11 +156,11 @@ namespace Chip8.NET
 
         private void Input_KeyUp(object sender, KeyEventArgs e)
         {
-            for (byte i = 0; i < _inputKeys.Length; i++)
+            for (byte i = 0; i < inputKeys.Length; i++)
             {
-                if (_inputKeys[i] == e.Key)
+                if (inputKeys[i] == e.Key)
                 {
-                    _chip8.InputRelease(i);
+                    chip8.InputRelease(i);
                     break;
                 }
             }
@@ -105,11 +168,11 @@ namespace Chip8.NET
 
         private void Input_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            for (byte i = 0; i < _inputButtons.Length; i++)
+            for (byte i = 0; i < inputButtons.Length; i++)
             {
-                if (_inputButtons[i] == sender)
+                if (inputButtons[i] == sender)
                 {
-                    _chip8.InputPress(i);
+                    chip8.InputPress(i);
                     break;
                 }
             }
@@ -117,11 +180,11 @@ namespace Chip8.NET
 
         private void Input_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            for (byte i = 0; i < _inputButtons.Length; i++)
+            for (byte i = 0; i < inputButtons.Length; i++)
             {
-                if (_inputButtons[i] == sender)
+                if (inputButtons[i] == sender)
                 {
-                    _chip8.InputRelease(i);
+                    chip8.InputRelease(i);
                     break;
                 }
             }

@@ -606,7 +606,7 @@ namespace Chip8.NET
         private void SetDelayTimer(byte x)
         {
             Debug("x = 0x" + x.ToString("x"));
-            //_dt = _v[x];
+            _dt = _v[x];
         }
 
         /// <summary>
@@ -668,6 +668,29 @@ namespace Chip8.NET
         {
             Debug();
             Array.Copy(_ram, _i, _v, 0, _v.Length);
+        }
+
+        /// <summary>
+        /// Runs the delay timer.
+        /// </summary>
+        public void DelayTick()
+        {
+            if (_dt > 0)
+            {
+                _dt--;
+            }
+        }
+
+        /// <summary>
+        /// Runs the sound timer.
+        /// </summary>
+        public void SoundTick()
+        {
+            if (_st > 0)
+            {
+                _st--;
+                System.Media.SystemSounds.Beep.Play();
+            }
         }
     }
 }
