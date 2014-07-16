@@ -78,6 +78,7 @@ namespace Chip8.NET
                 buttonRun.IsEnabled = true;
                 buttonPause.IsEnabled = false;
                 buttonStep.IsEnabled = true;
+                listDebug.Items.Clear();
             }
         }
 

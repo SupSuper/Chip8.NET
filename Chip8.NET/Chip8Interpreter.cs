@@ -71,10 +71,10 @@ namespace Chip8.NET
         private ListBox _debugger;
         private void Debug(string msg = "", [CallerMemberName] string caller = "")
         {
-            _debugger.Dispatcher.BeginInvoke((Action) (() =>
+            /*_debugger.Dispatcher.BeginInvoke((Action) (() =>
             {
                 _debugger.Items.Add("["+caller+"] "+msg);
-            }));
+            }));*/
         }
 
         public Chip8Interpreter(ListBox debugger)
@@ -129,7 +129,7 @@ namespace Chip8.NET
             while (_running)
             {
                 Step();
-                Thread.Sleep(20);
+                //Thread.Sleep(20);
             }
         }
 
@@ -212,9 +212,9 @@ namespace Chip8.NET
                 case 0x3: Xor(x, y); break;
                 case 0x4: AddRegister(x, y); break;
                 case 0x5: Subtract(x, y); break;
-                case 0x6: ShiftRight(x); break;
+                case 0x6: ShiftRight(x, y); break;
                 case 0x7: SubtractEx(x, y); break;
-                case 0xE: ShiftLeft(x); break;
+                case 0xE: ShiftLeft(x, y); break;
             }
         }
 
@@ -234,8 +234,8 @@ namespace Chip8.NET
                 case 0x1E: AddAddress(x); break;
                 case 0x29: HexSprite(x); break;
                 case 0x33: BCD(x);  break;
-                case 0x55: SaveRegisters(); break;
-                case 0x65: LoadRegisters(); break;
+                case 0x55: SaveRegisters(x); break;
+                case 0x65: LoadRegisters(x); break;
             }
         }
 
@@ -426,15 +426,16 @@ namespace Chip8.NET
         }
 
         /// <summary>
-        /// Shifts Vx >> 1.
+        /// Shifts Vy &gt;&gt; 1 and stores it in Vx.
         /// </summary>
-        /// <param name="x">Register V#</param>
-        private void ShiftRight(byte x)
+        /// <param name="x">Register V# to store</param>
+        /// <param name="y">Register V# to shift</param>
+        private void ShiftRight(byte x, byte y)
         {
             Debug("x = 0x" + x.ToString("x"));
-            byte nn = _v[x];
-            _v[x] >>= 1;
-            _v[0xF] = (byte)(nn & 1);
+            byte temp = _v[y];
+            _v[y] = (byte)(_v[x] >> 1);
+            _v[0xF] = (byte)(temp & 1);
         }
 
         /// <summary>
@@ -447,21 +448,22 @@ namespace Chip8.NET
             Debug("x = 0x" + x.ToString("x"));
             Debug("y = 0x" + y.ToString("x"));
             _v[0xF] = (byte)((_v[y] < _v[x]) ? 0 : 1);
-            byte nn = _v[y];
-            nn -= _v[x];
-            _v[x] = nn;
+            byte temp = _v[y];
+            temp -= _v[x];
+            _v[x] = temp;
         }
 
         /// <summary>
-        /// Shifts Vx << 1.
+        /// Shifts Vy &lt;&lt; 1 and stores it in Vx.
         /// </summary>
-        /// <param name="x">Register V#</param>
-        private void ShiftLeft(byte x)
+        /// <param name="x">Register V# to store</param>
+        /// <param name="y">Register V# to shift</param>
+        private void ShiftLeft(byte x, byte y)
         {
             Debug("x = 0x" + x.ToString("x"));
-            byte nn = _v[x];
-            _v[x] <<= 1;
-            _v[0xF] = (byte)(nn & 0x8000 >> 15);
+            byte temp = _v[y];
+            _v[x] = (byte)(_v[y] << 1);
+            _v[0xF] = (byte)((temp & 0x80) >> 15);
         }
 
         /// <summary>
@@ -653,21 +655,27 @@ namespace Chip8.NET
         }
 
         /// <summary>
-        /// Saves all registers to the memory at I.
+        /// Saves registers up to Vx to the memory at I.
         /// </summary>
-        private void SaveRegisters()
+        /// <param name="x">Register Vx</param>
+        private void SaveRegisters(byte x)
         {
             Debug();
-            Array.Copy(_v, 0, _ram, _i, _v.Length);
+            Array.Copy(_v, 0, _ram, _i, x+1);
+            _i += x;
+            _i++;
         }
 
         /// <summary>
-        /// Loads all registers from the memory at I.
+        /// Loads registers up to Vx from the memory at I.
         /// </summary>
-        private void LoadRegisters()
+        /// <param name="x">Register Vx</param>
+        private void LoadRegisters(byte x)
         {
             Debug();
-            Array.Copy(_ram, _i, _v, 0, _v.Length);
+            Array.Copy(_ram, _i, _v, 0, x+1);
+            _i += x;
+            _i++;
         }
 
         /// <summary>
